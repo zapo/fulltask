@@ -1,0 +1,41 @@
+version: '3.4'
+services:
+  ui:
+    build:
+      context: ui
+    command: npm start
+    volumes:
+      - ./ui:/app:cached
+    links:
+      - api
+    ports:
+      - '8080:8080'
+  api:
+    build:
+      context: api
+    command: go run main.go
+    tty: true
+    stdin_open: true
+    volumes:
+      - ./api:/app:cached
+    links:
+      - db
+    environment:
+      DSN: postgres://todo@db:5432/todo?sslmode=disable
+      BIND: :8081
+    ports:
+      - '8081:8081'
+  db:
+    image: postgres:latest
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - .:/app:cached
+    # Development environment don't need full on integrity safety
+    command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c random_page_cost=1.0
+    environment:
+      POSTGRES_USER: todo
+      POSTGRES_DB: todo
+
+volumes:
+  pgdata:
+    external: true
